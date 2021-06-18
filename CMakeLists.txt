@@ -82,7 +82,8 @@ if(SYSTEM.Darwin)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-exported_symbol,_dobby_enable_near_branch_trampoline -Wl,-exported_symbol,_dobby_disable_near_branch_trampoline")
   endif()
 elseif(SYSTEM.Android)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fomit-frame-pointer")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions -fomit-frame-pointer")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables")
   if(NOT DOBBY_DEBUG)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
@@ -110,7 +111,7 @@ if(COMPILER.Clang)
   endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ")
 
 message(STATUS "CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
@@ -340,20 +341,7 @@ set(dobby.HEADER_FILE_LIST
   )
 
 # add build version
-string(TIMESTAMP TODAY "%Y%m%d")
-set(VERSION_REVISION "-${TODAY}")
-if (EXISTS "${CMAKE_SOURCE_DIR}/.git")
-  execute_process(
-    COMMAND git rev-parse --short --verify HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE VERSION_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  if(VERSION_COMMIT_HASH)
-    set(VERSION_REVISION "${VERSION_REVISION}-${VERSION_COMMIT_HASH}")
-  endif()
-endif()
-set(DOBBY_BUILD_VERSION "Dobby${VERSION_REVISION}")
+set(DOBBY_BUILD_VERSION "Dobby-${VERSION_REVISION}")
 add_definitions(-D__DOBBY_BUILD_VERSION__="${DOBBY_BUILD_VERSION}")
 message(STATUS "[Dobby] ${DOBBY_BUILD_VERSION}")
 
@@ -365,6 +353,9 @@ else()
   set(DOBBY_LIBRARY_TYPE STATIC)
 endif()
 add_library(dobby ${DOBBY_LIBRARY_TYPE} ${dobby.HEADER_FILE_LIST} ${dobby.SOURCE_FILE_LIST} ${logging.SOURCE_FILE_LIST} ${xnucxx.SOURCE_FILE_LIST} ${dobby.plugin.SOURCE_FILE_LIST})
+if(NOT DOBBY_DEBUG AND NOT DOBBY_GENERATE_SHARED)
+  add_custom_command(TARGET dobby POST_BUILD COMMAND ${CMAKE_STRIP} -g --remove-section=.comment "${CMAKE_CURRENT_BINARY_DIR}/libdobby.a")
+endif()
 
 target_include_directories(dobby PUBLIC include)
 
@@ -435,6 +426,3 @@ if(SYSTEM.Darwin)
     add_subdirectory(builtin-plugin/SupervisorCallMonitor)
   endif()
 endif()
-
-add_subdirectory(example)
-
