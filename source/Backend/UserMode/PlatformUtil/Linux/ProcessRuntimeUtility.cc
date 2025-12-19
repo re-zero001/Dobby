@@ -6,16 +6,19 @@
 #include <sys/mman.h>
 
 #include <string>
-#include <string.h>
+#include <cstring>
 
 #include <vector>
 #include <algorithm>
 
+#ifndef LINE_MAX
 #define LINE_MAX 2048
+#endif
 
 // ================================================================
 // GetProcessMemoryLayout
 
+__attribute__((unused))
 static bool memory_region_comparator(MemRange a, MemRange b) {
   return (a.start < b.start);
 }
@@ -194,7 +197,7 @@ static std::vector<RuntimeModule> get_process_map_with_linker_iterator() {
 
   static int (*dl_iterate_phdr_ptr)(int (*)(struct dl_phdr_info *, size_t, void *), void *);
   dl_iterate_phdr_ptr = (__typeof(dl_iterate_phdr_ptr))dlsym(RTLD_DEFAULT, "dl_iterate_phdr");
-  if (dl_iterate_phdr_ptr == NULL) {
+  if (dl_iterate_phdr_ptr == nullptr) {
     return ProcessModuleMap;
   }
 
@@ -234,9 +237,9 @@ const std::vector<RuntimeModule> &ProcessRuntimeUtility::GetProcessModuleMap() {
 }
 
 RuntimeModule ProcessRuntimeUtility::GetProcessModule(const char *name) {
-  auto modules = GetProcessModuleMap();
-  for (auto module : modules) {
-    if (strstr(module.path, name) != 0) {
+  const auto &module_map = GetProcessModuleMap();
+  for (auto module : module_map) {
+    if (strstr(module.path, name) != nullptr) {
       return module;
     }
   }

@@ -5,13 +5,14 @@
 
 using namespace zz;
 
-void log_hex_format(uint8_t *buffer, uint32_t buffer_size) {
+void log_hex_format(const uint8_t *buffer, uint32_t buffer_size) {
   char output[1024] = {0};
-  for (int i = 0; i < buffer_size && i < sizeof(output); i++) {
-    snprintf(output + strlen(output), 3, "%02x ", *((uint8_t *)buffer + i));
+  const size_t max_entries = (sizeof(output) - 1) / 3;
+  for (size_t i = 0; i < buffer_size && i < max_entries; i++) {
+    snprintf(output + i * 3, 4, "%02x ", buffer[i]);
   }
   DLOG(0, "%s", output);
-};
+}
 
 void InterceptRouting::Prepare() {
 }
@@ -55,7 +56,7 @@ bool InterceptRouting::GenerateTrampolineBuffer(addr_t src, addr_t dst) {
   // if near branch trampoline plugin enabled
   if (RoutingPluginManager::near_branch_trampoline) {
     auto plugin = static_cast<RoutingPluginInterface *>(RoutingPluginManager::near_branch_trampoline);
-    if (plugin->GenerateTrampolineBuffer(this, src, dst) == false) {
+    if (!plugin->GenerateTrampolineBuffer(this, src, dst)) {
       DLOG(0, "Failed enable near branch trampoline plugin");
     }
   }
@@ -95,4 +96,4 @@ int InterceptRouting::PredefinedTrampolineSize() {
 
 InterceptEntry *InterceptRouting::GetInterceptEntry() {
   return entry_;
-};
+}
